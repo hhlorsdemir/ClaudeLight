@@ -1,6 +1,6 @@
 #!/bin/bash
-# ClaudeLight durum yazıcı. Kullanım: claude-light.sh working|waiting|idle
-# stdin'den Claude Code hook JSON'unu okur, session_id'ye göre durum dosyası yazar.
+# ClaudeLight state writer. Usage: claude-light.sh working|waiting|idle
+# Reads the Claude Code hook JSON from stdin and writes a state file per session_id.
 DIR="$HOME/.claude/claude-light/state"
 mkdir -p "$DIR"
 INPUT=$(cat)

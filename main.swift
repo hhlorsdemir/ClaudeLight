@@ -1,8 +1,8 @@
 import Cocoa
 
-// ClaudeLight — ekran kenarında duran, Claude Code durumunu gösteren trafik ışığı.
-// Durum kaynağı: ~/.claude/claude-light/state/<session_id> dosyaları ("working" | "waiting").
-// Yeşil: en az bir oturum çalışıyor. Sarı: en az bir oturum bekliyor. Kırmızı: açık oturum yok.
+// ClaudeLight — a traffic light on the screen edge showing Claude Code status.
+// State source: ~/.claude/claude-light/state/<session_id> files ("working" | "waiting").
+// Green: at least one session working. Yellow: at least one waiting. Red: no open session.
 
 struct LightState: Equatable {
     var working = false
@@ -13,7 +13,7 @@ struct LightState: Equatable {
 enum Side: String { case left, right }
 
 let stateDir = (NSHomeDirectory() as NSString).appendingPathComponent(".claude/claude-light/state")
-let staleAfter: TimeInterval = 12 * 3600      // 12 saatten eski dosyalar yok sayılır
+let staleAfter: TimeInterval = 12 * 3600      // files older than 12 hours are ignored
 let claudeBundleID = "com.anthropic.claudefordesktop"
 let sideKey = "ClaudeLightSide"
 let yKey = "ClaudeLightY"
@@ -49,8 +49,8 @@ final class LightView: NSView {
     weak var controller: AppDelegate?
 
     override func draw(_ dirtyRect: NSRect) {
-        // Kenardan yumuşakça çıkan, ortada genişleyen, uçlarda kenara kavuşan çıkıntı.
-        // Sağ kenar için çizilir; sol kenarda x ekseninde aynalanır.
+        // A bump that flares out of the edge, flat in the middle, tapering back at both ends.
+        // Drawn for the right edge; mirrored on x for the left edge.
         let r = bounds
         let flare: CGFloat = compact ? 14 : 20
         let path = NSBezierPath()
@@ -95,7 +95,7 @@ final class LightView: NSView {
 
         let x = r.midX - d / 2
         if compact {
-            // Tek ışık: öncelik yeşil > sarı > kırmızı
+            // Single light: priority green > yellow > red
             let color = state.working ? green : (state.waiting ? yellow : red)
             dot(NSRect(x: x, y: r.midY - d / 2, width: d, height: d), color, on: true)
         } else {
@@ -109,7 +109,7 @@ final class LightView: NSView {
         }
     }
 
-    // Sol tık: Claude'a geç. Sürükleme: yalnızca dikey, kenara yapışık.
+    // Left click: switch to Claude. Drag: vertical only, glued to the edge.
     override var mouseDownCanMoveWindow: Bool { false }
 
     override func mouseDown(with event: NSEvent) {
@@ -117,7 +117,7 @@ final class LightView: NSView {
         let grabOffsetY = NSEvent.mouseLocation.y - w.frame.origin.y
         let startY = w.frame.origin.y
         var didDrag = false
-        // Fare bırakılana kadar olayları burada takip et
+        // Track events here until the mouse is released
         while let e = w.nextEvent(matching: [.leftMouseDragged, .leftMouseUp]) {
             if e.type == .leftMouseUp { break }
             let targetY = NSEvent.mouseLocation.y - grabOffsetY
@@ -134,15 +134,15 @@ final class LightView: NSView {
 
     override func rightMouseDown(with event: NSEvent) {
         let menu = NSMenu()
-        let left = menu.addItem(withTitle: "Sol kenara yasla", action: #selector(AppDelegate.snapLeft), keyEquivalent: "")
-        let right = menu.addItem(withTitle: "Sağ kenara yasla", action: #selector(AppDelegate.snapRight), keyEquivalent: "")
+        let left = menu.addItem(withTitle: "Snap to Left Edge", action: #selector(AppDelegate.snapLeft), keyEquivalent: "")
+        let right = menu.addItem(withTitle: "Snap to Right Edge", action: #selector(AppDelegate.snapRight), keyEquivalent: "")
         left.state = side == .left ? .on : .off
         right.state = side == .right ? .on : .off
         menu.addItem(.separator())
-        let small = menu.addItem(withTitle: "Küçült", action: #selector(AppDelegate.toggleCompact), keyEquivalent: "")
+        let small = menu.addItem(withTitle: "Compact", action: #selector(AppDelegate.toggleCompact), keyEquivalent: "")
         small.state = compact ? .on : .off
         menu.addItem(.separator())
-        menu.addItem(withTitle: "ClaudeLight'ı Kapat", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
+        menu.addItem(withTitle: "Quit ClaudeLight", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
         NSMenu.popUpContextMenu(menu, with: event, for: self)
     }
 }
@@ -188,7 +188,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         panel.screen ?? NSScreen.main ?? NSScreen.screens[0]
     }
 
-    /// Paneli seçili kenara yapıştırır, dikey konumu ekran sınırları içinde tutar.
+    /// Glues the panel to the chosen edge and keeps its vertical position on screen.
     func place(y: CGFloat) {
         let vf = screen().visibleFrame
         let size = panel.frame.size
