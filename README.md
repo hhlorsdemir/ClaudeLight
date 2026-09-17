@@ -2,7 +2,7 @@
 
 A tiny traffic light that sits on the edge of your Mac screen and shows what [Claude Code](https://claude.com/claude-code) is doing, so you can work on something else and glance instead of switching windows.
 
-<img src="docs/screenshot.png" width="130" alt="ClaudeLight on the right edge of the screen">
+<img src="docs/mockup.png" width="800" alt="ClaudeLight on the right edge of a MacBook screen">
 
 - **Green** – at least one Claude session is working
 - **Yellow** – at least one session is waiting for you (finished answering, asking permission, or asking a question)
