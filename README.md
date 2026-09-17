@@ -15,7 +15,7 @@ With several sessions open, green and yellow can be lit at the same time. Red on
 Requires macOS 13+, Xcode Command Line Tools (`xcode-select --install`) and `jq` (`brew install jq`).
 
 ```bash
-git clone https://github.com/hlorsdemir/ClaudeLight.git
+git clone https://github.com/hhlorsdemir/ClaudeLight.git
 cd ClaudeLight
 ./install.sh
 ```
