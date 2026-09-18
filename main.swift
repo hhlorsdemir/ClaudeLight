@@ -1,8 +1,8 @@
 import Cocoa
 
-// ClaudeLight — a traffic light on the screen edge showing Claude Code status.
+// ClaudeLight — a traffic light on the screen edge showing Claude Code and Codex status.
 // State source: ~/.claude/claude-light/state/<session_id> files ("working" | "waiting").
-// Green: at least one session working. Yellow: at least one waiting. Red: no open session.
+// Yellow takes priority when input is needed; red means no tracked activity.
 
 struct LightState: Equatable {
     var working = false
@@ -95,11 +95,11 @@ final class LightView: NSView {
 
         let x = r.midX - d / 2
         if compact {
-            // Single light: priority green > yellow > red
-            let color = state.working ? green : (state.waiting ? yellow : red)
+            // Single light: requests for input take priority over background work.
+            let color = state.waiting ? yellow : (state.working ? green : red)
             dot(NSRect(x: x, y: r.midY - d / 2, width: d, height: d), color, on: true)
         } else {
-            let lights: [(Bool, NSColor)] = [(state.working, green), (state.waiting, yellow), (state.idle, red)]
+            let lights: [(Bool, NSColor)] = [(state.working && !state.waiting, green), (state.waiting, yellow), (state.idle, red)]
             let total = 3 * d + 2 * gap
             var y = r.midY + total / 2 - d
             for (on, color) in lights {
