@@ -16,7 +16,7 @@ strip_hooks() {
   jq '
     if .hooks == null then . else
       .hooks |= with_entries(
-        .value |= map(select((.hooks // []) | any(.command? // "" | test("claude-light\\.sh")) | not))
+        .value |= (map(.hooks = ((.hooks // []) | map(select((.command? // "" | test("claude-light\\.sh")) | not)))) | map(select(.hooks | length > 0)))
         | select(.value | length > 0))
       | if .hooks == {} then del(.hooks) else . end
     end
@@ -24,5 +24,5 @@ strip_hooks() {
   echo "Hooks removed from $file (backup: $file.bak-claudelight-uninstall)"
 }
 strip_hooks "$HOME/.claude/settings.json"
-strip_hooks "$HOME/.codex/hooks.json"
+strip_hooks "${CODEX_HOME:-$HOME/.codex}/hooks.json"
 echo "ClaudeLight removed."

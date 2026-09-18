@@ -45,12 +45,15 @@ register_hooks() {
   [ -f "$file" ] || echo '{}' > "$file"
   cp "$file" "$file.bak-claudelight"
   local cmd='"$HOME/.claude/hooks/claude-light.sh"'
+  local temp
+  temp=$(mktemp "$file.tmp.XXXXXX")
   jq --arg cmd "$cmd" '
-    def ours($s): {"hooks":[{"type":"command","command":($cmd+" "+$s),"timeout":5}]};
-    def strip: if . == null then [] else map(select((.hooks // []) | any(.command? // "" | test("claude-light\\.sh")) | not)) end;
+    def ours($s): {"hooks":[{"type":"command","command":($cmd+" "+$s),"timeout":3}]};
+    def strip: (. // []) | map(.hooks = ((.hooks // []) | map(select((.command? // "" | test("claude-light\\.sh")) | not)))) | map(select(.hooks | length > 0));
     reduce ($ARGS.positional | _nwise(2)) as [$ev, $st] (.hooks = (.hooks // {});
       .hooks[$ev] = ((.hooks[$ev] | strip) + [ours($st)]))
-  ' "$file.bak-claudelight" --args "$@" > "$file"
+  ' "$file.bak-claudelight" --args "$@" > "$temp" || { rm -f "$temp"; return 1; }
+  mv "$temp" "$file"
 }
 
 echo "==> Registering Claude Code hooks in $SETTINGS"
@@ -58,12 +61,14 @@ register_hooks "$SETTINGS" \
   SessionStart waiting UserPromptSubmit working PreToolUse working PostToolUse working \
   PermissionRequest waiting Notification waiting Stop waiting SessionEnd idle
 
-CODEX_HOOKS="$HOME/.codex/hooks.json"
-if command -v codex >/dev/null 2>&1 || [ -d "$HOME/.codex" ]; then
-  echo "==> Codex CLI detected, registering hooks in $CODEX_HOOKS"
+CODEX_DIR="${CODEX_HOME:-$HOME/.codex}"
+CODEX_HOOKS="$CODEX_DIR/hooks.json"
+if command -v codex >/dev/null 2>&1 || [ -d "$CODEX_DIR" ]; then
+  echo "==> Codex detected, registering hooks in $CODEX_HOOKS"
   register_hooks "$CODEX_HOOKS" \
-    SessionStart waiting UserPromptSubmit working PreToolUse working PostToolUse working \
-    PermissionRequest waiting Stop waiting SessionEnd idle
+    SessionStart codex UserPromptSubmit codex PreToolUse codex PostToolUse codex \
+    PermissionRequest codex Stop codex Interrupt codex SessionEnd codex \
+    PreCompact codex PostCompact codex
 fi
 
 if [ "$LOGIN" = 1 ]; then
@@ -80,5 +85,8 @@ echo "==> Launching"
 open "$APP"
 echo
 echo "Done. The light appears on the right edge of your screen."
-echo "New Claude Code (and Codex CLI) sessions are tracked automatically; sessions opened before install are not."
+echo "Start new Claude Code or Codex sessions to track them."
+if [ -f "$CODEX_HOOKS" ]; then
+  echo "Codex: review and trust the ClaudeLight hooks using /hooks before tracking sessions."
+fi
 echo "Right-click the light for options. To remove: ./uninstall.sh"
