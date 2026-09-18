@@ -30,7 +30,7 @@ Tracking depends on the client emitting these hooks; merely leaving the Codex ap
 
 ## Use
 
-- **Left click** – bring the Claude desktop app to the front (launches it if closed)
+- **Left click** – bring forward Claude or Codex, whichever has the most recently updated active session (working or waiting); launches that app if closed. With no active sessions, clicking does nothing.
 - **Drag** – move the light up or down; it stays glued to the edge
 - **Right click** – snap to the left or right edge, switch to compact single-light mode, quit
 
@@ -70,7 +70,7 @@ Removes the app, the hook script, the hook entries from Claude `settings.json` a
 
 ## Verification
 
-Run the hook regression tests with `python3 -m unittest discover -s tests -v`, then build with `./build.sh`.
+Run the hook regression tests with `python3 -m unittest discover -s tests -v`, run session-selection tests with `./tests/test_session_state.sh`, then build with `./build.sh`.
 
 For a live Codex check after trusting the hooks: submit a prompt (green), trigger an approval or supported input request (yellow), respond (green), and let the turn finish (red if no other sessions are active). Repeat with two sessions to check that a waiting session takes priority.
 

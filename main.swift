@@ -4,43 +4,13 @@ import Cocoa
 // State source: ~/.claude/claude-light/state/<session_id> files ("working" | "waiting").
 // Yellow takes priority when input is needed; red means no tracked activity.
 
-struct LightState: Equatable {
-    var working = false
-    var waiting = false
-    var idle: Bool { !working && !waiting }
-}
-
 enum Side: String { case left, right }
 
-let stateDir = (NSHomeDirectory() as NSString).appendingPathComponent(".claude/claude-light/state")
-let staleAfter: TimeInterval = 12 * 3600      // files older than 12 hours are ignored
-let claudeBundleID = "com.anthropic.claudefordesktop"
 let sideKey = "ClaudeLightSide"
 let yKey = "ClaudeLightY"
 let compactKey = "ClaudeLightCompact"
-
 let normalSize = NSSize(width: 18, height: 92)
 let compactSize = NSSize(width: 18, height: 44)
-
-func readState() -> LightState {
-    let fm = FileManager.default
-    var st = LightState()
-    guard let files = try? fm.contentsOfDirectory(atPath: stateDir) else { return st }
-    let now = Date()
-    for f in files where !f.hasPrefix(".") {
-        let p = (stateDir as NSString).appendingPathComponent(f)
-        if let attrs = try? fm.attributesOfItem(atPath: p),
-           let mod = attrs[.modificationDate] as? Date,
-           now.timeIntervalSince(mod) > staleAfter { continue }
-        guard let s = try? String(contentsOfFile: p, encoding: .utf8) else { continue }
-        switch s.trimmingCharacters(in: .whitespacesAndNewlines) {
-        case "working": st.working = true
-        case "waiting": st.waiting = true
-        default: break
-        }
-    }
-    return st
-}
 
 final class LightView: NSView {
     var state = LightState() { didSet { if state != oldValue { needsDisplay = true } } }
@@ -109,7 +79,7 @@ final class LightView: NSView {
         }
     }
 
-    // Left click: switch to Claude. Drag: vertical only, glued to the edge.
+    // Left click: switch to the most recently active agent. Drag: vertical only, glued to the edge.
     override var mouseDownCanMoveWindow: Bool { false }
 
     override func mouseDown(with event: NSEvent) {
@@ -125,9 +95,12 @@ final class LightView: NSView {
             if didDrag { c.place(y: targetY) }
         }
         if didDrag { c.saveY(); return }
-        if let app = NSRunningApplication.runningApplications(withBundleIdentifier: claudeBundleID).first {
+        // Read at click time so activity since the last refresh is included.
+        guard let agent = readState().latestAgent else { return }
+        let bundleID = agent.bundleIdentifier
+        if let app = NSRunningApplication.runningApplications(withBundleIdentifier: bundleID).first {
             app.activate(options: [.activateAllWindows])
-        } else if let url = NSWorkspace.shared.urlForApplication(withBundleIdentifier: claudeBundleID) {
+        } else if let url = NSWorkspace.shared.urlForApplication(withBundleIdentifier: bundleID) {
             NSWorkspace.shared.openApplication(at: url, configuration: NSWorkspace.OpenConfiguration())
         }
     }
