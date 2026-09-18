@@ -6,6 +6,6 @@ APP="ClaudeLight.app"
 rm -rf "$APP"
 mkdir -p "$APP/Contents/MacOS"
 cp Info.plist "$APP/Contents/Info.plist"
-swiftc -O -framework Cocoa -o "$APP/Contents/MacOS/ClaudeLight" main.swift
+swiftc -O -framework Cocoa -o "$APP/Contents/MacOS/ClaudeLight" main.swift SessionState.swift
 codesign --force --sign - "$APP" >/dev/null 2>&1 || true
 echo "Built: $(pwd)/$APP"
